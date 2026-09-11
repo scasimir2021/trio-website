@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trio — Your Local AI Runtime</title>
 <meta name="description" content="Trio is a local AI runtime that gives you a full system agent: chat, tools, research, trading, and business apps — all on your own hardware.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23060a10%22/><text x=%2250%22 y=%2268%22 font-size=%2260%22 font-weight=%22800%22 text-anchor=%22middle%22 fill=%22%2338bdf8%22 font-family=%22sans-serif%22>T</text></svg>">
 <style>
   :root {
     --bg: #060a10;
@@ -67,6 +68,22 @@
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   .nav-links { display: flex; gap: 1.75rem; align-items: center; }
+  .nav-toggle {
+    display: none; width: 38px; height: 38px; border-radius: 9px;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--surface-3);
+    align-items: center; justify-content: center; cursor: pointer;
+  }
+  .nav-toggle span, .nav-toggle span::before, .nav-toggle span::after {
+    content: ''; display: block; width: 16px; height: 1.5px;
+    background: var(--text-muted); position: relative;
+    transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+  }
+  .nav-toggle span::before { position: absolute; top: -5px; }
+  .nav-toggle span::after { position: absolute; top: 5px; }
+  .nav-toggle:hover span, .nav-toggle:hover span::before, .nav-toggle:hover span::after { background: var(--text); }
+  nav.nav-open .nav-toggle span { background: transparent; }
+  nav.nav-open .nav-toggle span::before { transform: rotate(45deg); top: 0; }
+  nav.nav-open .nav-toggle span::after { transform: rotate(-45deg); top: 0; }
   .nav-links a:not(.btn) {
     color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500;
     transition: color 0.2s; position: relative;
@@ -118,6 +135,24 @@
     -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 35%, black 25%, transparent 78%);
     mask-image: radial-gradient(ellipse 70% 65% at 50% 35%, black 25%, transparent 78%);
     pointer-events: none;
+  }
+  .hero::after {
+    content: '';
+    position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+    width: min(680px, 90vw); height: 420px;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.16), transparent 60%),
+      radial-gradient(circle at 70% 60%, rgba(52, 211, 153, 0.1), transparent 55%);
+    filter: blur(50px);
+    pointer-events: none;
+    z-index: -1;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .hero::after { animation: driftBlob 14s ease-in-out infinite; }
+  }
+  @keyframes driftBlob {
+    0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
+    50% { transform: translateX(-50%) translateY(14px) scale(1.05); }
   }
   .hero-inner { max-width: 760px; margin: 0 auto; position: relative; }
   .hero-badge {
@@ -184,7 +219,7 @@
     border: 1px solid var(--surface-2);
     border-radius: var(--radius);
     padding: 1.75rem;
-    transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+    transition: border-color 0.25s ease, transform 0.4s ease, box-shadow 0.25s ease, opacity 0.5s ease;
     position: relative;
     overflow: hidden;
   }
@@ -225,7 +260,7 @@
     border: 1px solid var(--surface-2);
     border-radius: var(--radius);
     padding: 1.5rem;
-    transition: border-color 0.25s ease, transform 0.25s ease;
+    transition: border-color 0.25s ease, transform 0.4s ease, opacity 0.5s ease;
   }
   .arch-card:hover {
     border-color: rgba(56, 189, 248, 0.3);
@@ -246,7 +281,7 @@
     border-radius: var(--radius);
     padding: 1.5rem;
     position: relative;
-    transition: border-color 0.25s ease, transform 0.25s ease;
+    transition: border-color 0.25s ease, transform 0.4s ease, opacity 0.5s ease;
   }
   .step:hover {
     border-color: rgba(56, 189, 248, 0.3);
@@ -280,7 +315,7 @@
     border-radius: var(--radius);
     padding: 2rem 1.5rem;
     text-align: center;
-    transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+    transition: border-color 0.25s ease, transform 0.4s ease, box-shadow 0.25s ease, opacity 0.5s ease;
   }
   .price-card:hover {
     border-color: rgba(56, 189, 248, 0.3);
@@ -344,7 +379,23 @@
 
   @media (max-width: 640px) {
     nav { padding: 0 1rem; }
-    .nav-links a:not(.btn) { display: none; }
+    .nav-toggle { display: flex; }
+    .nav-links {
+      position: fixed; top: 64px; left: 0; right: 0;
+      flex-direction: column; align-items: stretch; gap: 0;
+      background: var(--bg);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.12);
+      padding: 0.5rem 1.25rem;
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+    nav.nav-open .nav-links { max-height: 320px; padding: 0.75rem 1.25rem 1.25rem; }
+    .nav-links a:not(.btn) {
+      display: block; padding: 0.85rem 0;
+      border-bottom: 1px solid var(--surface-2);
+    }
+    .nav-links a:not(.btn)::after { display: none; }
+    .nav-links .btn { margin-top: 1rem; justify-content: center; }
     section { padding: 3.5rem 1.25rem; }
     .hero { padding: 4rem 1.25rem 3.5rem; }
     .price-card.featured::after { font-size: 0.6rem; }
@@ -371,6 +422,11 @@
     background: rgba(6,10,16,0.92);
     box-shadow: 0 8px 24px rgba(0,0,0,0.45);
     border-bottom-color: rgba(56,189,248,0.16);
+  }
+  .scroll-progress {
+    position: absolute; left: 0; bottom: -1px; height: 2px; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--violet));
+    transition: width 0.1s linear;
   }
 
   /* HERO stats bar */
@@ -419,7 +475,9 @@
       <a href="#pricing">Pricing</a>
       <a href="#contact" class="btn btn-primary">Get started</a>
     </div>
+    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false"><span></span></button>
   </div>
+  <div class="scroll-progress"></div>
 </nav>
 
 <section class="hero">
@@ -444,33 +502,33 @@
     <div class="section-label">Capabilities</div>
     <h2>One agent, every job</h2>
     <p class="section-desc">Trio isn't a chatbot wrapper. It's a runtime with 80+ tools that actually execute — on your network, against your data.</p>
-    <div class="features-grid reveal">
-      <div class="feature-card">
+    <div class="features-grid">
+      <div class="feature-card reveal">
         <div class="feature-icon">🧠</div>
         <h3>Deep research</h3>
         <p>Multi-pass research loops that read what they found, name what's still missing, and dig until the question is actually answered.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal">
         <div class="feature-icon">📊</div>
         <h3>Live trading</h3>
         <p>ORB5 engine with Moomoo as primary broker. Real positions, orders, and previews — with approval gates on every trade.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal">
         <div class="feature-icon">🏗️</div>
         <h3>Self-building tools</h3>
         <p>When a capability is missing, Trio writes the tool itself, registers it live, and calls it in the same turn. No waiting for a dev cycle.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal">
         <div class="feature-icon">🏢</div>
         <h3>Business apps</h3>
         <p>Lawn-A-Mercy, Riverside Kidz, Casimir Cleaning — each tenant gets their own scoped dashboard, chat, and data. No cross-tenant leaks.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal">
         <div class="feature-icon">📧</div>
         <h3>Email & comms</h3>
         <p>Gmail search, drafts, labels, and sends. Feed subscriptions fan alerts out to Telegram and Discord on your schedule.</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card reveal">
         <div class="feature-icon">🔬</div>
         <h3>Dual-brain review</h3>
         <p>High-stakes answers go through an independent 14B reviewer before they reach you. Verdict, confidence, and corrections — every time.</p>
@@ -484,23 +542,23 @@
     <div class="section-label">Architecture</div>
     <h2>Built for your network, not a datacenter</h2>
     <p class="section-desc">Three machines, one tailnet, zero cloud dependencies. Everything runs where you put it.</p>
-    <div class="arch-grid reveal">
-      <div class="arch-card">
+    <div class="arch-grid">
+      <div class="arch-card reveal">
         <div class="role">Primary · .1</div>
         <h3>pc-black</h3>
         <p>Brain, dashboard, all business apps, ORB5 trading engine, 35B LLM, and the source-of-truth git repo. The heart of the system.</p>
       </div>
-      <div class="arch-card">
+      <div class="arch-card reveal">
         <div class="role">Compute · .2</div>
         <h3>pc-white</h3>
         <p>Independent reviewer model, creative lane, embeddings, and batch inference. Optional — the system runs without it.</p>
       </div>
-      <div class="arch-card">
+      <div class="arch-card reveal">
         <div class="role">Mirror · .3</div>
         <h3>dev-desktop</h3>
         <p>Operator's Windows laptop. Source mirror and emergency worker. Pulls from .1, never pushes.</p>
       </div>
-      <div class="arch-card">
+      <div class="arch-card reveal">
         <div class="role">Network</div>
         <h3>Tailscale</h3>
         <p>All machines join one tailnet. Identity is verified per-request — no passwords, no tokens to copy, no cloud relay.</p>
@@ -514,23 +572,23 @@
     <div class="section-label">Setup</div>
     <h2>How it works</h2>
     <p class="section-desc">From bare machines to a running agent in four steps.</p>
-    <div class="steps reveal">
-      <div class="step">
+    <div class="steps">
+      <div class="step reveal">
         <div class="step-num">1</div>
         <h3>Install Tailscale</h3>
         <p>Each machine joins your private tailnet. No ports opened, no firewall rules, no cloud account.</p>
       </div>
-      <div class="step">
+      <div class="step reveal">
         <div class="step-num">2</div>
         <h3>Point at the repo</h3>
         <p>Trio pulls from a bare git repo on your primary machine. The live checkout is read-only; agents work in a source workspace.</p>
       </div>
-      <div class="step">
+      <div class="step reveal">
         <div class="step-num">3</div>
         <h3>Load your models</h3>
         <p>Point Trio at your local LLM endpoints. The 35B brain, the 14B reviewer, the creative lane — all on your hardware.</p>
       </div>
-      <div class="step">
+      <div class="step reveal">
         <div class="step-num">4</div>
         <h3>Open the dashboard</h3>
         <p>One URL. Chat, tools, research, trading, business apps — scoped to your identity, enforced by the network.</p>
@@ -544,8 +602,8 @@
     <div class="section-label">Pricing</div>
     <h2>Pick your setup</h2>
     <p class="section-desc">You bring the hardware. We bring the runtime.</p>
-    <div class="pricing-grid reveal">
-      <div class="price-card">
+    <div class="pricing-grid">
+      <div class="price-card reveal">
         <div class="tier">Solo</div>
         <div class="price">$0<span>/mo</span></div>
         <p>One machine, one operator</p>
@@ -557,7 +615,7 @@
         </ul>
         <a href="#contact" class="btn btn-ghost">Start free</a>
       </div>
-      <div class="price-card featured">
+      <div class="price-card featured reveal">
         <div class="tier">Business</div>
         <div class="price">$49<span>/mo</span></div>
         <p>Multi-tenant, scoped apps</p>
@@ -570,7 +628,7 @@
         </ul>
         <a href="#contact" class="btn btn-primary">Get started</a>
       </div>
-      <div class="price-card">
+      <div class="price-card reveal">
         <div class="tier">Team</div>
         <div class="price">$199<span>/mo</span></div>
         <p>Multiple operators, full stack</p>
@@ -616,9 +674,32 @@
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
   const nav = document.querySelector('nav');
-  const onScroll = () => nav.classList.toggle('nav-scrolled', window.scrollY > 8);
+  const progress = document.querySelector('.scroll-progress');
+  const onScroll = () => {
+    nav.classList.toggle('nav-scrolled', window.scrollY > 8);
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    progress.style.width = `${max > 0 ? (window.scrollY / max) * 100 : 0}%`;
+  };
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
+
+  const navToggle = document.querySelector('.nav-toggle');
+  navToggle.addEventListener('click', () => {
+    const open = nav.classList.toggle('nav-open');
+    navToggle.setAttribute('aria-expanded', open);
+  });
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.addEventListener('click', () => {
+      nav.classList.remove('nav-open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  document.querySelectorAll('.features-grid, .arch-grid, .steps, .pricing-grid').forEach(grid => {
+    [...grid.children].forEach((child, i) => {
+      child.style.transitionDelay = `${Math.min(i * 60, 300)}ms`;
+    });
+  });
 </script>
 
 </body>
