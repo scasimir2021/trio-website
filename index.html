@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trio — Your Local AI Runtime</title>
+<meta name="description" content="Trio is a local AI runtime that gives you a full system agent: chat, tools, research, trading, and business apps — all on your own hardware.">
+<style>
+  :root {
+    --bg: #0a0e14;
+    --surface: #111827;
+    --surface-2: #1a2332;
+    --text: #e8edf5;
+    --text-muted: #8b9dc3;
+    --accent: #38bdf8;
+    --accent-dim: rgba(56, 189, 248, 0.12);
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --radius: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10, 14, 20, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--surface-2);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-inner {
+    max-width: 1100px; width: 100%; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
+    color: var(--text); text-decoration: none;
+  }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+  .nav-links a {
+    color: var(--text-muted); text-decoration: none; font-size: 0.9rem;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem;
+    font-weight: 600; text-decoration: none; cursor: pointer;
+    transition: all 0.2s; border: none;
+  }
+  .btn-primary {
+    background: var(--accent); color: #0a0e14;
+  }
+  .btn-primary:hover { background: #7dd3fc; transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent; color: var(--text-muted);
+    border: 1px solid var(--surface-2);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text-muted); }
+
+  /* HERO */
+  .hero {
+    padding: 6rem 2rem 5rem;
+    text-align: center;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 100%);
+  }
+  .hero-inner { max-width: 720px; margin: 0 auto; }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.35rem 0.85rem; border-radius: 999px;
+    background: var(--accent-dim); color: var(--accent);
+    font-size: 0.8rem; font-weight: 600; margin-bottom: 1.5rem;
+  }
+  .hero-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+  h1 {
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    font-weight: 800; letter-spacing: -0.03em; line-height: 1.15;
+    margin-bottom: 1.25rem;
+  }
+  h1 em { font-style: normal; color: var(--accent); }
+  .hero p {
+    font-size: 1.15rem; color: var(--text-muted);
+    max-width: 560px; margin: 0 auto 2rem;
+  }
+  .hero-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+  /* SECTIONS */
+  section { padding: 5rem 2rem; }
+  .section-inner { max-width: 1100px; margin: 0 auto; }
+  .section-label {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent); margin-bottom: 0.75rem;
+  }
+  h2 {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 700; letter-spacing: -0.02em; line-height: 1.2;
+    margin-bottom: 1rem;
+  }
+  .section-desc { color: var(--text-muted); max-width: 560px; margin-bottom: 2.5rem; font-size: 1.05rem; }
+
+  /* FEATURES GRID */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .feature-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .feature-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--accent-dim); display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; margin-bottom: 1rem;
+  }
+  .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .feature-card p { font-size: 0.9rem; color: var(--text-muted); }
+
+  /* ARCHITECTURE */
+  .arch-section { background: var(--surface); }
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .arch-card {
+    background: var(--bg);
+    border: 1px solid var(--surface-2);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+  }
+  .arch-card .role {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--accent); margin-bottom: 0.5rem;
+  }
+  .arch-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .arch-card p { font-size: 0.85rem; color: var(--text-muted); }
+
+  /* HOW IT WORKS */
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 2rem; }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--surface-2);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    position: relative;
+  }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent); color: var(--bg);
+    font-size: 0.85rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1rem;
+  }
+  .step h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .step p { font-size: 0.85rem; color: var(--text-muted); }
+
+  /* PRICING */
+  .pricing-section { background: var(--surface); }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+    margin-top: 2rem;
+  }
+  .price-card {
+    background: var(--bg);
+    border: 1px solid var(--surface-2);
+    border-radius: var(--radius);
+    padding: 2rem 1.5rem;
+    text-align: center;
+  }
+  .price-card.featured { border-color: var(--accent); }
+  .price-card .tier { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.5rem; }
+  .price-card .price { font-size: 2rem; font-weight: 800; margin-bottom: 0.25rem; }
+  .price-card .price span { font-size: 0.9rem; font-weight: 400; color: var(--text-muted); }
+  .price-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+  .price-card ul { list-style: none; text-align: left; margin-bottom: 1.5rem; }
+  .price-card li {
+    font-size: 0.85rem; color: var(--text-muted);
+    padding: 0.4rem 0; border-bottom: 1px solid var(--surface-2);
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .price-card li::before { content: '✓'; color: var(--success); font-weight: 700; }
+
+  /* CTA */
+  .cta-section { text-align: center; padding: 5rem 2rem; }
+  .cta-section h2 { margin-bottom: 0.75rem; }
+  .cta-section p { color: var(--text-muted); max-width: 480px; margin: 0 auto 2rem; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--surface-2);
+    padding: 2rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 640px) {
+    nav { padding: 0 1rem; }
+    .nav-links a:not(.btn) { display: none; }
+    section { padding: 3.5rem 1.25rem; }
+    .hero { padding: 4rem 1.25rem 3.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="logo">Trio<span>.</span></a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#contact" class="btn btn-primary">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">Local-first · No cloud lock-in</div>
+    <h1>Your AI runtime,<br><em>on your hardware.</em></h1>
+    <p>Trio is a full system agent that lives on your machines. It chats, researches, trades, runs your business apps, and builds itself new tools — all without sending a single byte to a third-party cloud.</p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn btn-primary">See pricing</a>
+      <a href="#how" class="btn btn-ghost">How it works</a>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="section-inner">
+    <div class="section-label">Capabilities</div>
+    <h2>One agent, every job</h2>
+    <p class="section-desc">Trio isn't a chatbot wrapper. It's a runtime with 80+ tools that actually execute — on your network, against your data.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Deep research</h3>
+        <p>Multi-pass research loops that read what they found, name what's still missing, and dig until the question is actually answered.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Live trading</h3>
+        <p>ORB5 engine with Moomoo as primary broker. Real positions, orders, and previews — with approval gates on every trade.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏗️</div>
+        <h3>Self-building tools</h3>
+        <p>When a capability is missing, Trio writes the tool itself, registers it live, and calls it in the same turn. No waiting for a dev cycle.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏢</div>
+        <h3>Business apps</h3>
+        <p>Lawn-A-Mercy, Riverside Kidz, Casimir Cleaning — each tenant gets their own scoped dashboard, chat, and data. No cross-tenant leaks.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📧</div>
+        <h3>Email & comms</h3>
+        <p>Gmail search, drafts, labels, and sends. Feed subscriptions fan alerts out to Telegram and Discord on your schedule.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔬</div>
+        <h3>Dual-brain review</h3>
+        <p>High-stakes answers go through an independent 14B reviewer before they reach you. Verdict, confidence, and corrections — every time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture" class="arch-section">
+  <div class="section-inner">
+    <div class="section-label">Architecture</div>
+    <h2>Built for your network, not a datacenter</h3>
+    <p class="section-desc">Three machines, one tailnet, zero cloud dependencies. Everything runs where you put it.</p>
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="role">Primary · .1</div>
+        <h3>pc-black</h3>
+        <p>Brain, dashboard, all business apps, ORB5 trading engine, 35B LLM, and the source-of-truth git repo. The heart of the system.</p>
+      </div>
+      <div class="arch-card">
+        <div class="role">Compute · .2</div>
+        <h3>pc-white</h3>
+        <p>Independent reviewer model, creative lane, embeddings, and batch inference. Optional — the system runs without it.</p>
+      </div>
+      <div class="arch-card">
+        <div class="role">Mirror · .3</div>
+        <h3>dev-desktop</h3>
+        <p>Operator's Windows laptop. Source mirror and emergency worker. Pulls from .1, never pushes.</p>
+      </div>
+      <div class="arch-card">
+        <div class="role">Network</div>
+        <h3>Tailscale</h3>
+        <p>All machines join one tailnet. Identity is verified per-request — no passwords, no tokens to copy, no cloud relay.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="section-inner">
+    <div class="section-label">Setup</div>
+    <h2>How it works</h2>
+    <p class="section-desc">From bare machines to a running agent in four steps.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Install Tailscale</h3>
+        <p>Each machine joins your private tailnet. No ports opened, no firewall rules, no cloud account.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Point at the repo</h3>
+        <p>Trio pulls from a bare git repo on your primary machine. The live checkout is read-only; agents work in a source workspace.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Load your models</h3>
+        <p>Point Trio at your local LLM endpoints. The 35B brain, the 14B reviewer, the creative lane — all on your hardware.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>Open the dashboard</h3>
+        <p>One URL. Chat, tools, research, trading, business apps — scoped to your identity, enforced by the network.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing" class="pricing-section">
+  <div class="section-inner">
+    <div class="section-label">Pricing</div>
+    <h2>Pick your setup</h2>
+    <p class="section-desc">You bring the hardware. We bring the runtime.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="tier">Solo</div>
+        <div class="price">$0<span>/mo</span></div>
+        <p>One machine, one operator</p>
+        <ul>
+          <li>Chat + tools</li>
+          <li>Research loops</li>
+          <li>Local LLM endpoints</li>
+          <li>Community support</li>
+        </ul>
+        <a href="#contact" class="btn btn-ghost">Start free</a>
+      </div>
+      <div class="price-card featured">
+        <div class="tier">Business</div>
+        <div class="price">$49<span>/mo</span></div>
+        <p>Multi-tenant, scoped apps</p>
+        <ul>
+          <li>Everything in Solo</li>
+          <li>Per-tenant dashboards</li>
+          <li>Business app scoping</li>
+          <li>Email + feed alerts</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="#contact" class="btn btn-primary">Get started</a>
+      </div>
+      <div class="price-card">
+        <div class="tier">Team</div>
+        <div class="price">$199<span>/mo</span></div>
+        <p>Multiple operators, full stack</p>
+        <ul>
+          <li>Everything in Business</li>
+          <li>ORB5 trading engine</li>
+          <li>Dual-brain review</li>
+          <li>Custom tool building</li>
+          <li>Dedicated support</li>
+        </ul>
+        <a href="#contact" class="btn btn-ghost">Contact us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="cta-section">
+  <h2>Ready to run your own agent?</h2>
+  <p>Trio is built for operators who want their AI on their terms. Tell us about your setup and we'll get you running.</p>
+  <a href="mailto:steven@trio.local" class="btn btn-primary">Get in touch</a>
+</section>
+
+<footer>
+  Trio · Local AI Runtime · Built on Tailscale, not the cloud
+</footer>
+
+</body>
+</html>
