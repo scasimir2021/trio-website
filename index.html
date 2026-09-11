@@ -362,6 +362,49 @@
       transform: translateY(0);
     }
   }
+  ::selection { background: rgba(56,189,248,0.35); color: #fff; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+  section, .hero { scroll-margin-top: 76px; }
+
+  /* NAV scrolled state */
+  nav.nav-scrolled {
+    background: rgba(6,10,16,0.92);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    border-bottom-color: rgba(56,189,248,0.16);
+  }
+
+  /* HERO stats bar */
+  .hero-stats {
+    display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;
+    margin-top: 2.75rem; padding-top: 2rem;
+    border-top: 1px solid rgba(56,189,248,0.1);
+  }
+  .hero-stat { text-align: center; min-width: 90px; }
+  .hero-stat .num {
+    font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent-bright), var(--success));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    display: block;
+  }
+  .hero-stat .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-top: 0.25rem; }
+
+  /* Pricing featured mobile fix */
+  @media (max-width: 640px) {
+    .price-card.featured { transform: none; }
+    .price-card.featured:hover { transform: translateY(-3px); }
+  }
+
+  /* Footer polish */
+  footer { position: relative; }
+  footer::before {
+    content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: min(60%, 420px); height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent);
+  }
+  .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .footer-links { display: flex; gap: 1.25rem; }
+  .footer-links a { color: var(--text-dim); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -387,6 +430,11 @@
     <div class="hero-actions">
       <a href="#pricing" class="btn btn-primary">See pricing</a>
       <a href="#how" class="btn btn-ghost">How it works</a>
+    </div>
+    <div class="hero-stats reveal">
+      <div class="hero-stat"><span class="num">80+</span><span class="lbl">live tools</span></div>
+      <div class="hero-stat"><span class="num">3</span><span class="lbl">machines, one tailnet</span></div>
+      <div class="hero-stat"><span class="num">0</span><span class="lbl">cloud dependencies</span></div>
     </div>
   </div>
 </section>
@@ -546,7 +594,14 @@
 </section>
 
 <footer>
-  Trio · Local AI Runtime · Built on Tailscale, not the cloud
+  <div class="footer-inner">
+    <span>Trio · Local AI Runtime · Built on Tailscale, not the cloud</span>
+    <div class="footer-links">
+      <a href="#features">Features</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+  </div>
 </footer>
 
 <script>
@@ -559,6 +614,11 @@
     });
   }, { threshold: 0.15 });
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  const nav = document.querySelector('nav');
+  const onScroll = () => nav.classList.toggle('nav-scrolled', window.scrollY > 8);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 </script>
 
 </body>
