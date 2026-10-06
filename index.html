@@ -1,706 +1,120 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trio — Your Local AI Runtime</title>
-<meta name="description" content="Trio is a local AI runtime that gives you a full system agent: chat, tools, research, trading, and business apps — all on your own hardware.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23060a10%22/><text x=%2250%22 y=%2268%22 font-size=%2260%22 font-weight=%22800%22 text-anchor=%22middle%22 fill=%22%2338bdf8%22 font-family=%22sans-serif%22>T</text></svg>">
-<style>
-  :root {
-    --bg: #060a10;
-    --surface: #0d1420;
-    --surface-2: #151e2e;
-    --surface-3: #1a2740;
-    --text: #f0f4fa;
-    --text-muted: #94a7c9;
-    --text-dim: #5e7099;
-    --accent: #38bdf8;
-    --accent-bright: #7dd3fc;
-    --accent-dim: rgba(56, 189, 248, 0.08);
-    --accent-glow: rgba(56, 189, 248, 0.25);
-    --violet: #a78bfa;
-    --success: #34d399;
-    --warning: #fbbf24;
-    --danger: #f87171;
-    --radius: 14px;
-    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
-    --glow-accent: 0 0 20px rgba(56, 189, 248, 0.15);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: var(--font);
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(56, 189, 248, 0.06), transparent),
-      radial-gradient(ellipse 60% 40% at 90% 110%, rgba(52, 211, 153, 0.04), transparent);
-    background-attachment: fixed;
-  }
-
-  /* NAV */
-  nav {
-    position: sticky; top: 0; z-index: 100;
-    background: rgba(6, 10, 16, 0.75);
-    backdrop-filter: blur(16px) saturate(1.2);
-    -webkit-backdrop-filter: blur(16px) saturate(1.2);
-    border-bottom: 1px solid rgba(56, 189, 248, 0.08);
-    padding: 0 2rem;
-    height: 64px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .nav-inner {
-    max-width: 1100px; width: 100%; margin: 0 auto;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .logo {
-    font-size: 1.3rem; font-weight: 800; letter-spacing: -0.03em;
-    color: var(--text); text-decoration: none;
-  }
-  .logo span {
-    background: linear-gradient(135deg, var(--accent), var(--success));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .nav-links { display: flex; gap: 1.75rem; align-items: center; }
-  .nav-toggle {
-    display: none; width: 38px; height: 38px; border-radius: 9px;
-    background: rgba(255,255,255,0.03); border: 1px solid var(--surface-3);
-    align-items: center; justify-content: center; cursor: pointer;
-  }
-  .nav-toggle span, .nav-toggle span::before, .nav-toggle span::after {
-    content: ''; display: block; width: 16px; height: 1.5px;
-    background: var(--text-muted); position: relative;
-    transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
-  }
-  .nav-toggle span::before { position: absolute; top: -5px; }
-  .nav-toggle span::after { position: absolute; top: 5px; }
-  .nav-toggle:hover span, .nav-toggle:hover span::before, .nav-toggle:hover span::after { background: var(--text); }
-  nav.nav-open .nav-toggle span { background: transparent; }
-  nav.nav-open .nav-toggle span::before { transform: rotate(45deg); top: 0; }
-  nav.nav-open .nav-toggle span::after { transform: rotate(-45deg); top: 0; }
-  .nav-links a:not(.btn) {
-    color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500;
-    transition: color 0.2s; position: relative;
-  }
-  .nav-links a:not(.btn)::after {
-    content: ''; position: absolute; left: 0; bottom: -5px;
-    width: 0; height: 1.5px;
-    background: linear-gradient(90deg, var(--accent), var(--violet));
-    transition: width 0.25s ease;
-  }
-  .nav-links a:not(.btn):hover { color: var(--text); }
-  .nav-links a:not(.btn):hover::after { width: 100%; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 0.5rem;
-    padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem;
-    font-weight: 600; text-decoration: none; cursor: pointer;
-    transition: all 0.2s ease; border: none;
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #0ea5e9);
-    color: #060a10;
-    box-shadow: var(--glow-accent);
-  }
-  .btn-primary:hover {
-    background: linear-gradient(135deg, var(--accent-bright), var(--accent));
-    transform: translateY(-1px);
-    box-shadow: 0 0 24px rgba(56, 189, 248, 0.35);
-  }
-  .btn-ghost {
-    background: rgba(255, 255, 255, 0.03); color: var(--text-muted);
-    border: 1px solid var(--surface-3);
-  }
-  .btn-ghost:hover { color: var(--text); border-color: var(--text-dim); background: rgba(255,255,255,0.05); }
-
-  /* HERO */
-  .hero {
-    padding: 7rem 2rem 5.5rem;
-    text-align: center;
-    position: relative;
-  }
-  .hero::before {
-    content: '';
-    position: absolute; inset: 0;
-    background:
-      radial-gradient(ellipse 50% 40% at 50% 30%, rgba(56, 189, 248, 0.08), transparent),
-      linear-gradient(rgba(56, 189, 248, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(56, 189, 248, 0.045) 1px, transparent 1px);
-    background-size: auto, 44px 44px, 44px 44px;
-    -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 35%, black 25%, transparent 78%);
-    mask-image: radial-gradient(ellipse 70% 65% at 50% 35%, black 25%, transparent 78%);
-    pointer-events: none;
-  }
-  .hero::after {
-    content: '';
-    position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
-    width: min(680px, 90vw); height: 420px;
-    background:
-      radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.16), transparent 60%),
-      radial-gradient(circle at 70% 60%, rgba(52, 211, 153, 0.1), transparent 55%);
-    filter: blur(50px);
-    pointer-events: none;
-    z-index: -1;
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    .hero::after { animation: driftBlob 14s ease-in-out infinite; }
-  }
-  @keyframes driftBlob {
-    0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
-    50% { transform: translateX(-50%) translateY(14px) scale(1.05); }
-  }
-  .hero-inner { max-width: 760px; margin: 0 auto; position: relative; }
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 0.5rem;
-    padding: 0.4rem 1rem; border-radius: 999px;
-    background: var(--accent-dim); color: var(--accent-bright);
-    font-size: 0.8rem; font-weight: 600; margin-bottom: 1.75rem;
-    border: 1px solid rgba(56, 189, 248, 0.2);
-    backdrop-filter: blur(8px);
-  }
-  .hero-badge::before {
-    content: ''; width: 8px; height: 8px; border-radius: 50%;
-    background: var(--success);
-    box-shadow: 0 0 8px var(--success);
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-  h1 {
-    font-size: clamp(2.4rem, 5.5vw, 3.8rem);
-    font-weight: 800; letter-spacing: -0.035em; line-height: 1.12;
-    margin-bottom: 1.5rem;
-  }
-  h1 em {
-    font-style: normal;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--success) 100%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .hero p {
-    font-size: 1.15rem; color: var(--text-muted);
-    max-width: 600px; margin: 0 auto 2.25rem;
-  }
-  .hero-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
-
-  /* SECTIONS */
-  section { padding: 5rem 2rem; }
-  .section-inner { max-width: 1100px; margin: 0 auto; }
-  .section-label {
-    display: inline-flex; align-items: center; gap: 0.6rem;
-    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--accent-bright); margin-bottom: 0.9rem;
-  }
-  .section-label::before {
-    content: ''; width: 22px; height: 1.5px;
-    background: linear-gradient(90deg, var(--accent), var(--violet));
-  }
-  h2 {
-    font-size: clamp(1.6rem, 3vw, 2.2rem);
-    font-weight: 700; letter-spacing: -0.02em; line-height: 1.2;
-    margin-bottom: 1rem;
-  }
-  .section-desc { color: var(--text-muted); max-width: 560px; margin-bottom: 2.5rem; font-size: 1.05rem; }
-
-  /* FEATURES GRID */
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.25rem;
-  }
-  .feature-card {
-    background: linear-gradient(180deg, var(--surface) 0%, rgba(13, 20, 32, 0.6) 100%);
-    border: 1px solid var(--surface-2);
-    border-radius: var(--radius);
-    padding: 1.75rem;
-    transition: border-color 0.25s ease, transform 0.4s ease, box-shadow 0.25s ease, opacity 0.5s ease;
-    position: relative;
-    overflow: hidden;
-  }
-  .feature-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.4), transparent);
-    opacity: 0; transition: opacity 0.25s ease;
-  }
-  .feature-card:hover {
-    border-color: rgba(56, 189, 248, 0.35);
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md), var(--glow-accent);
-  }
-  .feature-card:hover::before { opacity: 1; }
-  .feature-icon {
-    width: 44px; height: 44px; border-radius: 12px;
-    background: var(--accent-dim);
-    border: 1px solid rgba(56, 189, 248, 0.15);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; margin-bottom: 1.1rem;
-  }
-  .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.01em; }
-  .feature-card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.65; }
-
-  /* ARCHITECTURE */
-  .arch-section {
-    background: linear-gradient(180deg, transparent 0%, rgba(13, 20, 32, 0.5) 50%, transparent 100%);
-  }
-  .arch-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
-    margin-top: 2rem;
-  }
-  .arch-card {
-    background: var(--surface);
-    border: 1px solid var(--surface-2);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    transition: border-color 0.25s ease, transform 0.4s ease, opacity 0.5s ease;
-  }
-  .arch-card:hover {
-    border-color: rgba(56, 189, 248, 0.3);
-    transform: translateY(-2px);
-  }
-  .arch-card .role {
-    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--accent-bright); margin-bottom: 0.5rem;
-  }
-  .arch-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
-  .arch-card p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
-
-  /* HOW IT WORKS */
-  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 2rem; }
-  .step {
-    background: var(--surface);
-    border: 1px solid var(--surface-2);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    position: relative;
-    transition: border-color 0.25s ease, transform 0.4s ease, opacity 0.5s ease;
-  }
-  .step:hover {
-    border-color: rgba(56, 189, 248, 0.3);
-    transform: translateY(-2px);
-  }
-  .step-num {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), #0ea5e9);
-    color: #060a10;
-    font-size: 0.9rem; font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 1rem;
-    box-shadow: var(--glow-accent);
-  }
-  .step h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
-  .step p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
-
-  /* PRICING */
-  .pricing-section {
-    background: linear-gradient(180deg, transparent 0%, rgba(13, 20, 32, 0.5) 50%, transparent 100%);
-  }
-  .pricing-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 1.25rem;
-    margin-top: 2rem;
-  }
-  .price-card {
-    background: var(--surface);
-    border: 1px solid var(--surface-2);
-    border-radius: var(--radius);
-    padding: 2rem 1.5rem;
-    text-align: center;
-    transition: border-color 0.25s ease, transform 0.4s ease, box-shadow 0.25s ease, opacity 0.5s ease;
-  }
-  .price-card:hover {
-    border-color: rgba(56, 189, 248, 0.3);
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-  }
-  .price-card.featured {
-    border-color: transparent;
-    background:
-      linear-gradient(var(--surface), var(--surface)) padding-box,
-      linear-gradient(135deg, var(--accent), var(--violet)) border-box;
-    border: 1px solid transparent;
-    box-shadow: 0 0 40px rgba(56, 189, 248, 0.18);
-    position: relative;
-    transform: scale(1.03);
-  }
-  .price-card.featured:hover {
-    border-color: transparent;
-    transform: scale(1.03) translateY(-3px);
-    box-shadow: 0 0 50px rgba(56, 189, 248, 0.28);
-  }
-  .price-card.featured::after {
-    content: 'POPULAR';
-    position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
-    background: linear-gradient(135deg, var(--accent), var(--violet));
-    color: #060a10; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.08em;
-    padding: 0.3rem 0.85rem; border-radius: 999px;
-    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
-  }
-  .price-card .tier { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.5rem; }
-  .price-card .price { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.25rem; letter-spacing: -0.02em; }
-  .price-card .price span { font-size: 0.9rem; font-weight: 400; color: var(--text-dim); }
-  .price-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; }
-  .price-card ul { list-style: none; text-align: left; margin-bottom: 1.5rem; }
-  .price-card li {
-    font-size: 0.85rem; color: var(--text-muted);
-    padding: 0.45rem 0; border-bottom: 1px solid var(--surface-2);
-    display: flex; align-items: center; gap: 0.5rem;
-  }
-  .price-card li::before { content: '✓'; color: var(--success); font-weight: 700; }
-
-  /* CTA */
-  .cta-section { text-align: center; padding: 5rem 2rem; position: relative; }
-  .cta-section::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse 40% 60% at 50% 100%, rgba(56, 189, 248, 0.06), transparent);
-    pointer-events: none;
-  }
-  .cta-section h2 { margin-bottom: 0.75rem; position: relative; }
-  .cta-section p { color: var(--text-muted); max-width: 480px; margin: 0 auto 2rem; position: relative; }
-
-  /* FOOTER */
-  footer {
-    border-top: 1px solid var(--surface-2);
-    padding: 2.5rem 2rem;
-    text-align: center;
-    font-size: 0.85rem;
-    color: var(--text-dim);
-  }
-
-  @media (max-width: 640px) {
-    nav { padding: 0 1rem; }
-    .nav-toggle { display: flex; }
-    .nav-links {
-      position: fixed; top: 64px; left: 0; right: 0;
-      flex-direction: column; align-items: stretch; gap: 0;
-      background: var(--bg);
-      border-bottom: 1px solid rgba(56, 189, 248, 0.12);
-      padding: 0.5rem 1.25rem;
-      max-height: 0; overflow: hidden;
-      transition: max-height 0.3s ease, padding 0.3s ease;
-    }
-    nav.nav-open .nav-links { max-height: 320px; padding: 0.75rem 1.25rem 1.25rem; }
-    .nav-links a:not(.btn) {
-      display: block; padding: 0.85rem 0;
-      border-bottom: 1px solid var(--surface-2);
-    }
-    .nav-links a:not(.btn)::after { display: none; }
-    .nav-links .btn { margin-top: 1rem; justify-content: center; }
-    section { padding: 3.5rem 1.25rem; }
-    .hero { padding: 4rem 1.25rem 3.5rem; }
-    .price-card.featured::after { font-size: 0.6rem; }
-  }
-
-  /* SCROLL REVEAL */
-  @media (prefers-reduced-motion: no-preference) {
-    .reveal {
-      opacity: 0;
-      transform: translateY(16px);
-      transition: opacity 0.5s ease, transform 0.5s ease;
-    }
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  ::selection { background: rgba(56,189,248,0.35); color: #fff; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
-  section, .hero { scroll-margin-top: 76px; }
-
-  /* NAV scrolled state */
-  nav.nav-scrolled {
-    background: rgba(6,10,16,0.92);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
-    border-bottom-color: rgba(56,189,248,0.16);
-  }
-  .scroll-progress {
-    position: absolute; left: 0; bottom: -1px; height: 2px; width: 0%;
-    background: linear-gradient(90deg, var(--accent), var(--violet));
-    transition: width 0.1s linear;
-  }
-
-  /* HERO stats bar */
-  .hero-stats {
-    display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;
-    margin-top: 2.75rem; padding-top: 2rem;
-    border-top: 1px solid rgba(56,189,248,0.1);
-  }
-  .hero-stat { text-align: center; min-width: 90px; }
-  .hero-stat .num {
-    font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em;
-    background: linear-gradient(135deg, var(--accent-bright), var(--success));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    display: block;
-  }
-  .hero-stat .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-top: 0.25rem; }
-
-  /* Pricing featured mobile fix */
-  @media (max-width: 640px) {
-    .price-card.featured { transform: none; }
-    .price-card.featured:hover { transform: translateY(-3px); }
-  }
-
-  /* Footer polish */
-  footer { position: relative; }
-  footer::before {
-    content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-    width: min(60%, 420px); height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent);
-  }
-  .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-  .footer-links { display: flex; gap: 1.25rem; }
-  .footer-links a { color: var(--text-dim); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
-  .footer-links a:hover { color: var(--text-muted); }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trio — Your apps, your context, your work</title>
+  <meta name="description" content="An AI workspace for your apps, conversations, and ongoing work. Explore Trio's approach to useful context, visible progress, and work you can review.">
+  <meta name="theme-color" content="#08111f">
+  <meta property="og:title" content="Trio — Less starting over. More moving forward.">
+  <meta property="og:description" content="Your apps, conversations, and ongoing work, brought together in one AI workspace.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://scasimir2021.github.io/trio-website/">
+  <link rel="canonical" href="https://scasimir2021.github.io/trio-website/">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2308111f'/%3E%3Ctext x='50' y='71' font-size='65' font-weight='700' text-anchor='middle' fill='%2362b6ff' font-family='sans-serif'%3ET%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
-
-<nav>
-  <div class="nav-inner">
-    <a href="#" class="logo">Trio<span>.</span></a>
-    <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#architecture">Architecture</a>
-      <a href="#how">How it works</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#contact" class="btn btn-primary">Get started</a>
-    </div>
-    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false"><span></span></button>
-  </div>
-  <div class="scroll-progress"></div>
-</nav>
-
-<section class="hero">
-  <div class="hero-inner">
-    <div class="hero-badge">Local-first · No cloud lock-in</div>
-    <h1>Your AI runtime,<br><em>on your hardware.</em></h1>
-    <p>Trio is a full system agent that lives on your machines. It chats, researches, trades, runs your business apps, and builds itself new tools — all without sending a single byte to a third-party cloud.</p>
-    <div class="hero-actions">
-      <a href="#pricing" class="btn btn-primary">See pricing</a>
-      <a href="#how" class="btn btn-ghost">How it works</a>
-    </div>
-    <div class="hero-stats reveal">
-      <div class="hero-stat"><span class="num">80+</span><span class="lbl">live tools</span></div>
-      <div class="hero-stat"><span class="num">3</span><span class="lbl">machines, one tailnet</span></div>
-      <div class="hero-stat"><span class="num">0</span><span class="lbl">cloud dependencies</span></div>
-    </div>
-  </div>
-</section>
-
-<section id="features">
-  <div class="section-inner">
-    <div class="section-label">Capabilities</div>
-    <h2>One agent, every job</h2>
-    <p class="section-desc">Trio isn't a chatbot wrapper. It's a runtime with 80+ tools that actually execute — on your network, against your data.</p>
-    <div class="features-grid">
-      <div class="feature-card reveal">
-        <div class="feature-icon">🧠</div>
-        <h3>Deep research</h3>
-        <p>Multi-pass research loops that read what they found, name what's still missing, and dig until the question is actually answered.</p>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <nav class="wrap navigation" aria-label="Main navigation">
+      <a class="wordmark" href="#main" aria-label="Trio home">Trio<span aria-hidden="true">.</span></a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="navigation-links">Menu <span aria-hidden="true">☰</span></button>
+      <div class="nav-links" id="navigation-links">
+        <a href="#possibilities">What it does</a><a href="#workspace">Your workspace</a><a href="#plans">Plans</a><a class="button button-small" href="#contact">Meet Trio</a>
       </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon">📊</div>
-        <h3>Live trading</h3>
-        <p>ORB5 engine with Moomoo as primary broker. Real positions, orders, and previews — with approval gates on every trade.</p>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="intro-note"><span aria-hidden="true"></span>Built in real workflows. Growing with them.</p>
+        <h1 id="hero-title">Less starting over.<br>More moving forward.</h1>
+        <p class="lead">Trio brings your apps, conversations, and ongoing work into one AI workspace. Ask for help, follow the work, and keep the context that matters.</p>
+        <div class="hero-actions"><a class="button" href="#contact">Discuss your workspace</a><a class="text-link" href="#possibilities">Explore what Trio can do</a></div>
+        <p class="availability">Workspaces are introduced with a guided setup. Available apps and capabilities are agreed with you.</p>
       </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon">🏗️</div>
-        <h3>Self-building tools</h3>
-        <p>When a capability is missing, Trio writes the tool itself, registers it live, and calls it in the same turn. No waiting for a dev cycle.</p>
+      <figure class="workspace-preview" aria-labelledby="preview-title">
+        <div class="preview-top"><span class="preview-mark">Trio<span>.</span></span><span id="preview-title">An example workspace</span></div>
+        <div class="preview-tabs" role="tablist" aria-label="Explore example workflows">
+          <button id="tab-day" type="button" role="tab" aria-selected="true" aria-controls="panel-day" tabindex="0">Your day</button>
+          <button id="tab-research" type="button" role="tab" aria-selected="false" aria-controls="panel-research" tabindex="-1">A decision</button>
+          <button id="tab-project" type="button" role="tab" aria-selected="false" aria-controls="panel-project" tabindex="-1">A project</button>
+        </div>
+        <div class="preview-panel" id="panel-day" role="tabpanel" aria-labelledby="tab-day" tabindex="0">
+          <div class="request"><span>You</span><p>Help me get ready for tomorrow. What needs my attention?</p></div>
+          <div class="work-log"><span class="work-label">A useful path through the work</span><ul><li>Read the relevant app records</li><li>Find open work and missing details</li><li>Prepare a short brief to review</li></ul></div>
+          <div class="result"><span>Ready to review</span><h3>Tomorrow, in focus.</h3><p>One brief with the open items, what is known, and the questions still to resolve.</p></div>
+        </div>
+        <div class="preview-panel" id="panel-research" role="tabpanel" aria-labelledby="tab-research" tabindex="0" hidden>
+          <div class="request"><span>You</span><p>Compare these options for my project. Show me what the evidence supports.</p></div>
+          <div class="work-log"><span class="work-label">A useful path through the work</span><ul><li>Start with your goal and constraints</li><li>Read relevant sources</li><li>Separate findings from open questions</li></ul></div>
+          <div class="result"><span>Ready to review</span><h3>A clearer decision.</h3><p>A comparison you can inspect, with sources and uncertainty kept in view.</p></div>
+        </div>
+        <div class="preview-panel" id="panel-project" role="tabpanel" aria-labelledby="tab-project" tabindex="0" hidden>
+          <div class="request"><span>You</span><p>Pick up the report we started. What is left before I can share it?</p></div>
+          <div class="work-log"><span class="work-label">A useful path through the work</span><ul><li>Use the relevant conversation and files</li><li>Identify the remaining work</li><li>Prepare a draft and checks to review</li></ul></div>
+          <div class="result"><span>Ready to review</span><h3>Continue from here.</h3><p>The draft, the remaining checks, and a clear next step in the same workspace.</p></div>
+        </div>
+        <figcaption>Illustrative workflows, not live results. What Trio can do depends on the apps and permissions in your workspace.</figcaption>
+      </figure>
+    </section>
+    <section id="possibilities" class="section wrap" aria-labelledby="possibilities-title">
+      <div class="section-heading"><h2 id="possibilities-title">Help that belongs<br>inside your work.</h2><p>Start with the thing you need to get done. Trio can use the tools and app access enabled for your workspace to help you get there.</p></div>
+      <div class="use-cases">
+        <article><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="6" width="22" height="21" rx="3"/><path d="M10 3v6M22 3v6M5 13h22M10 18h4M18 18h4M10 23h4"/></svg><h3>Make sense of the day</h3><p>Ask about records, outstanding work, or the details in a connected business app. Turn scattered information into a useful next step.</p><span class="example">“What still needs my attention?”</span></article>
+        <article><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14" cy="14" r="9"/><path d="m21 21 7 7M10 14h8M14 10v8"/></svg><h3>Research with a purpose</h3><p>Explore a question, compare options, and work through the gaps. Keep the sources and constraints close to the decision.</p><span class="example">“Compare these options for my project.”</span></article>
+        <article><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M18 4H7a2 2 0 0 0-2 2v22h22V13zM18 4v9h9M10 19h12M10 23h8"/></svg><h3>Keep a project moving</h3><p>Develop a draft, review what is missing, or request a change through an enabled workflow. Return to the conversation when it is time to continue.</p><span class="example">“What is left before this is ready?”</span></article>
       </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon">🏢</div>
-        <h3>Business apps</h3>
-        <p>Lawn-A-Mercy, Riverside Kidz, Casimir Cleaning — each tenant gets their own scoped dashboard, chat, and data. No cross-tenant leaks.</p>
+    </section>
+    <section id="workspace" class="workspace-section section" aria-labelledby="workspace-title">
+      <div class="wrap workspace-layout">
+        <div class="workspace-intro"><h2 id="workspace-title">Your work has context.<br>Your workspace should too.</h2><p>A business is more than a chat window. Trio is built around the apps you use, the conversations you return to, and the work you want to move forward.</p><a class="text-link" href="#how">See how a workspace takes shape</a></div>
+        <div class="workspace-details">
+          <article><span class="detail-symbol" aria-hidden="true">⌘</span><div><h3>The right apps for your role</h3><p>App access follows the permissions configured for your workspace. A team member’s experience can be different from the operator’s.</p></div></article>
+          <article><span class="detail-symbol" aria-hidden="true">↳</span><div><h3>Somewhere to pick up the thread</h3><p>Keep conversations and relevant project material together, so you have a starting point when you come back.</p></div></article>
+          <article><span class="detail-symbol" aria-hidden="true">≋</span><div><h3>Progress you can follow</h3><p>See the steps as work happens. A useful result includes what was done, what still needs attention, and any review that is required.</p></div></article>
+        </div>
       </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon">📧</div>
-        <h3>Email & comms</h3>
-        <p>Gmail search, drafts, labels, and sends. Feed subscriptions fan alerts out to Telegram and Discord on your schedule.</p>
+    </section>
+    <section id="how" class="section wrap" aria-labelledby="how-title">
+      <div class="section-heading"><h2 id="how-title">Start with your workflow.</h2><p>You bring the work and the goals. The setup is shaped around them.</p></div>
+      <ol class="steps">
+        <li><span class="step-number" aria-hidden="true">1</span><h3>Talk through the work</h3><p>Choose a practical starting point: an app, a recurring task, or a project that needs better continuity.</p></li>
+        <li><span class="step-number" aria-hidden="true">2</span><h3>Shape your workspace</h3><p>Agree on the apps, access, context, and workflows that belong in it. Availability and setup are confirmed with you.</p></li>
+        <li><span class="step-number" aria-hidden="true">3</span><h3>Ask, review, continue</h3><p>Use Trio in the flow of your work. Review the results, give direction, and build on what you learn.</p></li>
+      </ol>
+    </section>
+    <section class="growth-section section" aria-labelledby="growth-title">
+      <div class="wrap growth-layout">
+        <div><p class="roadmap-label">The next chapter</p><h2 id="growth-title">More room for<br>the work ahead.</h2><p>Trio’s next architecture separates the customer workspace from the private engine behind it. The aim is a simpler experience as the system grows.</p><p class="roadmap-note">These are planned improvements, released as capacity and workflows are verified.</p></div>
+        <ul class="growth-list"><li><h3>More work at once</h3><p>Expand capacity for concurrent tasks while keeping everyday interactions responsive.</p></li><li><h3>Richer app workflows</h3><p>Bring more useful, permission-scoped capabilities into customer workspaces.</p></li><li><h3>Simpler browser access</h3><p>Move toward customer access managed by a dedicated application service, with the underlying infrastructure handled separately.</p></li></ul>
       </div>
-      <div class="feature-card reveal">
-        <div class="feature-icon">🔬</div>
-        <h3>Dual-brain review</h3>
-        <p>High-stakes answers go through an independent 14B reviewer before they reach you. Verdict, confidence, and corrections — every time.</p>
+    </section>
+    <section id="plans" class="section wrap" aria-labelledby="plans-title">
+      <div class="section-heading"><h2 id="plans-title">A starting point<br>for your workspace.</h2><p>Current published plans. Available apps, setup, and service details are confirmed before onboarding.</p></div>
+      <div class="plans">
+        <article class="plan"><h3>Solo</h3><p class="price">$0<span>/month</span></p><p>Explore a personal workflow.</p><ul><li>Chat and enabled tools</li><li>Research workflows</li><li>Community support</li></ul><a class="button button-secondary" href="#contact">Discuss Solo</a></article>
+        <article class="plan plan-business"><h3>Business</h3><p class="price">$49<span>/month</span></p><p>Bring your business apps into focus.</p><ul><li>A scoped business workspace</li><li>App-specific access and context</li><li>Enabled communication workflows</li><li>Priority support</li></ul><a class="button" href="#contact">Discuss Business</a></article>
+        <article class="plan"><h3>Team</h3><p class="price">$199<span>/month</span></p><p>Shape a workspace around a team.</p><ul><li>Multiple operator workflows</li><li>Custom app and tool requirements</li><li>Configured review workflows</li><li>Dedicated support</li></ul><a class="button button-secondary" href="#contact">Discuss Team</a></article>
       </div>
-    </div>
-  </div>
-</section>
-
-<section id="architecture" class="arch-section">
-  <div class="section-inner">
-    <div class="section-label">Architecture</div>
-    <h2>Built for your network, not a datacenter</h2>
-    <p class="section-desc">Three machines, one tailnet, zero cloud dependencies. Everything runs where you put it.</p>
-    <div class="arch-grid">
-      <div class="arch-card reveal">
-        <div class="role">Primary · .1</div>
-        <h3>pc-black</h3>
-        <p>Brain, dashboard, all business apps, ORB5 trading engine, 35B LLM, and the source-of-truth git repo. The heart of the system.</p>
+      <p class="plan-note">Trio is introduced through a conversation and guided setup. This page does not start a subscription or promise access to unreleased capabilities.</p>
+    </section>
+    <section class="section wrap faq-section" aria-labelledby="faq-title">
+      <h2 id="faq-title">A few useful details.</h2>
+      <div class="faq-list">
+        <details><summary>Is Trio just a chat app?</summary><p>Chat is one way to work with Trio. Its tools can read information and carry out supported actions in connected apps, within the access and workflows configured for the workspace.</p></details>
+        <details><summary>Who handles the underlying setup?</summary><p>Workspaces are configured with you. The direction is a managed customer experience where the private engine, models, and added processing capacity stay behind the scenes. You focus on your apps and the work they support.</p></details>
+        <details><summary>What does Trio do with my context?</summary><p>Trio uses conversation history and relevant app information to help with a task. App permissions, connected services, data handling, and retention should be agreed during setup. External integrations may involve their own providers.</p></details>
+        <details><summary>Does every answer get an independent review?</summary><p>No. Review is a configured workflow, not a guarantee on every answer. Results should be checked against the task and its evidence, and important actions may require an approval before proceeding.</p></details>
+        <details><summary>Can I sign up and start immediately?</summary><p>Access is currently arranged through a conversation and guided setup. Broader browser-based onboarding and expanded capacity are part of the next phase.</p></details>
       </div>
-      <div class="arch-card reveal">
-        <div class="role">Compute · .2</div>
-        <h3>pc-white</h3>
-        <p>Independent reviewer model, creative lane, embeddings, and batch inference. Optional — the system runs without it.</p>
-      </div>
-      <div class="arch-card reveal">
-        <div class="role">Mirror · .3</div>
-        <h3>dev-desktop</h3>
-        <p>Operator's Windows laptop. Source mirror and emergency worker. Pulls from .1, never pushes.</p>
-      </div>
-      <div class="arch-card reveal">
-        <div class="role">Network</div>
-        <h3>Tailscale</h3>
-        <p>All machines join one tailnet. Identity is verified per-request — no passwords, no tokens to copy, no cloud relay.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="how">
-  <div class="section-inner">
-    <div class="section-label">Setup</div>
-    <h2>How it works</h2>
-    <p class="section-desc">From bare machines to a running agent in four steps.</p>
-    <div class="steps">
-      <div class="step reveal">
-        <div class="step-num">1</div>
-        <h3>Install Tailscale</h3>
-        <p>Each machine joins your private tailnet. No ports opened, no firewall rules, no cloud account.</p>
-      </div>
-      <div class="step reveal">
-        <div class="step-num">2</div>
-        <h3>Point at the repo</h3>
-        <p>Trio pulls from a bare git repo on your primary machine. The live checkout is read-only; agents work in a source workspace.</p>
-      </div>
-      <div class="step reveal">
-        <div class="step-num">3</div>
-        <h3>Load your models</h3>
-        <p>Point Trio at your local LLM endpoints. The 35B brain, the 14B reviewer, the creative lane — all on your hardware.</p>
-      </div>
-      <div class="step reveal">
-        <div class="step-num">4</div>
-        <h3>Open the dashboard</h3>
-        <p>One URL. Chat, tools, research, trading, business apps — scoped to your identity, enforced by the network.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="pricing" class="pricing-section">
-  <div class="section-inner">
-    <div class="section-label">Pricing</div>
-    <h2>Pick your setup</h2>
-    <p class="section-desc">You bring the hardware. We bring the runtime.</p>
-    <div class="pricing-grid">
-      <div class="price-card reveal">
-        <div class="tier">Solo</div>
-        <div class="price">$0<span>/mo</span></div>
-        <p>One machine, one operator</p>
-        <ul>
-          <li>Chat + tools</li>
-          <li>Research loops</li>
-          <li>Local LLM endpoints</li>
-          <li>Community support</li>
-        </ul>
-        <a href="#contact" class="btn btn-ghost">Start free</a>
-      </div>
-      <div class="price-card featured reveal">
-        <div class="tier">Business</div>
-        <div class="price">$49<span>/mo</span></div>
-        <p>Multi-tenant, scoped apps</p>
-        <ul>
-          <li>Everything in Solo</li>
-          <li>Per-tenant dashboards</li>
-          <li>Business app scoping</li>
-          <li>Email + feed alerts</li>
-          <li>Priority support</li>
-        </ul>
-        <a href="#contact" class="btn btn-primary">Get started</a>
-      </div>
-      <div class="price-card reveal">
-        <div class="tier">Team</div>
-        <div class="price">$199<span>/mo</span></div>
-        <p>Multiple operators, full stack</p>
-        <ul>
-          <li>Everything in Business</li>
-          <li>ORB5 trading engine</li>
-          <li>Dual-brain review</li>
-          <li>Custom tool building</li>
-          <li>Dedicated support</li>
-        </ul>
-        <a href="#contact" class="btn btn-ghost">Contact us</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="contact" class="cta-section">
-  <h2>Ready to run your own agent?</h2>
-  <p>Trio is built for operators who want their AI on their terms. Tell us about your setup and we'll get you running.</p>
-  <a href="mailto:steven@trio.local" class="btn btn-primary">Get in touch</a>
-</section>
-
-<footer>
-  <div class="footer-inner">
-    <span>Trio · Local AI Runtime · Built on Tailscale, not the cloud</span>
-    <div class="footer-links">
-      <a href="#features">Features</a>
-      <a href="#architecture">Architecture</a>
-      <a href="#pricing">Pricing</a>
-    </div>
-  </div>
-</footer>
-
-<script>
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('visible');
-        io.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.15 });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-
-  const nav = document.querySelector('nav');
-  const progress = document.querySelector('.scroll-progress');
-  const onScroll = () => {
-    nav.classList.toggle('nav-scrolled', window.scrollY > 8);
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    progress.style.width = `${max > 0 ? (window.scrollY / max) * 100 : 0}%`;
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
-
-  const navToggle = document.querySelector('.nav-toggle');
-  navToggle.addEventListener('click', () => {
-    const open = nav.classList.toggle('nav-open');
-    navToggle.setAttribute('aria-expanded', open);
-  });
-  document.querySelectorAll('.nav-links a').forEach(a => {
-    a.addEventListener('click', () => {
-      nav.classList.remove('nav-open');
-      navToggle.setAttribute('aria-expanded', 'false');
-    });
-  });
-
-  document.querySelectorAll('.features-grid, .arch-grid, .steps, .pricing-grid').forEach(grid => {
-    [...grid.children].forEach((child, i) => {
-      child.style.transitionDelay = `${Math.min(i * 60, 300)}ms`;
-    });
-  });
-</script>
-
+    </section>
+    <section id="contact" class="contact-section">
+      <div class="wrap contact-inner"><div><h2>What would you like<br>to make easier?</h2><p>Start with one workflow. Let’s see where Trio can help.</p></div><div class="contact-action"><a class="button" href="https://github.com/scasimir2021/trio-website/issues/new?title=Trio%20workspace%20inquiry">Ask about Trio on GitHub</a><p>Inquiries currently open on GitHub.<br>Setup and availability are confirmed personally.</p></div></div>
+    </section>
+  </main>
+  <footer class="wrap footer"><a class="wordmark" href="#main">Trio<span aria-hidden="true">.</span></a><p>Your apps. Your context. Your work.</p><div><a href="#possibilities">What it does</a><a href="#plans">Plans</a><a href="https://github.com/scasimir2021/trio-website">Website source</a></div></footer>
 </body>
 </html>
